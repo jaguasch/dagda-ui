@@ -1,0 +1,164 @@
+{% extends "base.html" %} {% block nav_vulndb %}active{% endblock %} {% block script %}
+<script>
+    function searchVulnDB() {
+        var type = $('select[name=search-type]').val();
+        var query = $('input[name=search-term]').val();
+        query = query.replace('EXPLOIT_DB_ID-', '');
+        $('#searchresults').DataTable({
+            destroy: true,
+            sorting: true,
+            searching: true,
+            "order": [
+                [2, "desc"]
+            ],
+            info: true,
+            "ajax": {
+                "url": APIHOST + "/vuln/" + type + '/' + query,
+                "dataSrc": function(json) {
+                    results = [];
+                    switch (type) {
+                        case 'products':
+                            if (query.includes(":")) {
+                                var product = query.split(":")[0];
+                                var version = query.split(":")[1];
+                            } else {
+                                var product = query;
+                                var version = "";
+                            }
+                            for (code of json) {
+                                result = {};
+                                result['product'] = product;
+                                result['version'] = version;
+                                result['vulnerabilities'] = code;
+                                results.push(result);
+                            }
+                            break;
+                        case 'cve':
+                            for (code of json) {
+                                result = {};
+                                result['product'] = code['product'];
+                                result['version'] = code['version'];
+                                result['vulnerabilities'] = query;
+                                results.push(result);
+                            }
+                            break;
+                        case 'bid':
+                            for (code of json) {
+                                result = {};
+                                result['product'] = code['product'];
+                                result['version'] = code['version'];
+                                result['vulnerabilities'] = "EXPLOIT_DB_ID-" + query;
+                                results.push(result);
+                            }
+                            break;
+                        case 'exploitdb':
+                            for (code of json) {
+                                result = {};
+                                result['product'] = code['product'];
+                                result['version'] = code['version'];
+                                result['vulnerabilities'] = query;
+                                results.push(result);
+                            }
+                            break;
+                    }
+                    return results;
+                },
+                error: function (xhr, error, thrown) {
+                  alert('no results found');
+                }
+            },
+            "columns": [{
+                "data": "product",
+                "className": "text-left"
+            }, {
+                "data": "version",
+                "className": "text-left col-xs-1"
+            }, {
+                "data": "vulnerabilities",
+                "className": "text-left col-xs-7"
+            }, ]
+
+        });
+    }
+
+    $(document).ready(function() {
+      if (APIHOST === '') {
+        alert('error getting information from DAGDA!\nCheck host information on Settings');
+        window.location.replace("/settings");
+      }
+      $('select[name=search-type]').on('change', function(e) {
+          var selText = $(this).val();
+          $('input[name=search-term]').val("");
+          switch (selText) {
+              case 'cve':
+                  $("input.search-term").attr('placeholder', 'Format: CVE-XXXX-XXXX');
+                  break;
+              case 'bid':
+                  $("input.search-term").attr('placeholder', 'Format: BID-XXXXX');
+                  break;
+              case 'exploitdb':
+                  $("input.search-term").attr('placeholder', 'Format: XXXXXX');
+                  break;
+              case 'product':
+                  $("input.search-term").attr('placeholder', 'Format: openldap, openldap:2.2.20');
+                  break;
+          }
+      });
+    });
+</script>
+{% endblock %} {% block body %}
+<div class="row">
+    <div class="col-xs-10 col-xs-offset-1">
+        <div>
+            <div class="panel panel-default">
+                <div class="panel-heading"><strong>VulnDB Search</strong></div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-xs-10 col-xs-offset-3">
+                            <form class="form-horizontal" role="search">
+                                <div class="form-group">
+                                    <div class="col-md-2">
+                                        <select ng-model="info.search_type" class="form-control" name="search-type">
+                                   <option disabled selected value>Search by</option>
+                                   <option value="products" selected>Product</option>
+                                   <option value="cve">CVE</option>
+                                   <option value="bid">BID</option>
+                                   <option value="exploitdb">Exploit-DB</option>
+                                 </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="text" name="search-term" class="form-control search-term" placeholder="Search for...">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-search btn-default" onclick="searchVulnDB()">Search</button>
+                                    </div>
+                                </div>
+                        </div>
+                        </form>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-10 col-xs-offset-1">
+                            <table id="searchresults" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Version</th>
+                                        <th>Vuln IDs</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

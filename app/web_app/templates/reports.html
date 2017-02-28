@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block nav_reports %}active{% endblock %}
+{% block script %}
+
+<link href="//cdn.datatables.net/buttons/1.2.4/css/buttons.dataTables.min.css" rel="stylesheet">
+<script src="//cdn.datatables.net/buttons/1.2.4/js/dataTables.buttons.min.js"></script>
+<script src="//cdn.datatables.net/buttons/1.2.4/js/buttons.flash.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jszip/2.5.0/jszip.min.js"></script>
+<script src="//cdn.rawgit.com/bpampuch/pdfmake/0.1.18/build/pdfmake.min.js"></script>
+<script src="//cdn.rawgit.com/bpampuch/pdfmake/0.1.18/build/vfs_fonts.js"></script>
+<script src="//cdn.datatables.net/buttons/1.2.4/js/buttons.html5.min.js"></script>
+<script src="//cdn.datatables.net/buttons/1.2.4/js/buttons.print.min.js"></script>
+
+<script>
+$(document).ready(function() {
+
+  var tablesummary = $('#tablesummary').DataTable({
+    "destroy":true,
+    "sorting":true,
+    "paging":false,
+    "info":false,
+    "searching":true,
+    "order": [[ 1, "asc" ]],
+    "ajax": {
+          "url": APIHOST + "/history",
+          "dataSrc": function ( json ) {
+            return json
+          },
+          error: function (xhr, error, thrown) {
+            alert('error getting information from DAGDA!\nCheck host information on Settings');
+            window.location.replace("/settings");
+          }
+    },
+    "columns": [
+      { "data": "image_name", "className":"text-center" },
+      { "data": "status", "className":"text-center" },
+      { "data": "start_date", "type": "date", "className":"text-center" , "render":function(data){
+                 return data.substring(0,19);}
+               },
+      { "data": "os_vulns", "className":"text-center" },
+      { "data": "libs_vulns", "className":"text-center" },
+      { "data": "anomalies", "className":"text-center" },
+      {
+          "className":      'text-center',
+          "orderable":      false,
+          "data":           null,
+          "defaultContent": '<button class="btn btn-info btn-xs"><i class="fa fa-eye"></i>&nbsp;View</button>',
+      }
+    ],
+
+    "rowCallback": function( row, data, index ) {
+      switch(data.status) {
+          case "Analyzing":
+              $('td:eq(1)', row).html( '<span class="label label-warning"><i class="fa fa-cog fa-spin"></i>&nbsp;Analyzing</span>' );
+              $('td:lt(6):gt(2)', row).html( '-' );
+              break;
+          case "Completed":
+              $('td:eq(1)', row).html( '<span class="label label-success"><i class="fa fa-check"></i>&nbsp;Completed</span>' );
+              break;
+      }
+      if(data.os_vulns > 0) {
+        $('td:eq(3)', row).addClass("alert-danger");
+      }
+      if(data.libs_vulns > 0) {
+        $('td:eq(4)', row).addClass("alert-danger");
+      }
+      if(data.anomalies > 0) {
+        $('td:eq(5)', row).addClass("alert-danger");
+      }
+    }
+    });
+
+    $('#tablesummary tbody').on( 'click', 'button', function (e) {
+      var data = tablesummary.row( $(this).parents('tr') ).data();
+      var reportid = data["reportid"];
+      var image_name = data["image_name"];
+      $('#fullreport').modal("show");
+      $('#modaltitle').html('<h3>Report: <span class="label label-default">' + image_name + '</span> <span class="label label-info">' + reportid + '</span></h3>');
+
+      $('#tablereport').DataTable({
+        destroy:true,
+        sorting:true,
+        searching:true,
+        dom: 'Bfrtip',
+        buttons: [
+            'csv', 'excel', 'pdf', 'print'
+        ],
+        "order": [[ 2, "desc" ]],
+        info:true,
+        "ajax": {
+              "url": APIHOST + "/history/" + image_name + '?id=' + reportid,
+              "dataSrc": function ( json ) {
+                pkgvulns = [];
+                os_details = json[0]['static_analysis']['os_packages']['os_packages_details'];
+                for (let pkg of os_details) {
+                  if (pkg['is_vulnerable'] == true) {
+                    pkg['type'] = "os";
+                    pkgvulns.push(pkg);
+                  }
+                }
+                var vuln_dependencies = json[0]['static_analysis']['prog_lang_dependencies']['vuln_dependencies'];
+                if ( vuln_dependencies > 0) {
+                  var dep_details = json[0]['static_analysis']['prog_lang_dependencies']['dependencies_details']
+                  for (var type in dep_details) {
+                      var type_vulns = dep_details[type];
+                      if (type_vulns.length != 0) {
+                        for (let depvuln of type_vulns) {
+                          depvuln['type'] = type;
+                          pkgvulns.push(depvuln)
+                        }
+                      }
+                  }
+                }
+                return pkgvulns;
+              },
+              error: function (xhr, error, thrown) {
+                alert('error getting information from DAGDA!\nCheck host information on Settings');
+                window.location.replace("/settings");
+              }
+        },
+        "columns": [
+          { "data": "product", "className":"text-left" },
+          { "data": "version", "className":"text-left col-xs-1" },
+          { "data": "type", "className":"text-left col-xs-1" },
+          { "data": "vulnerabilities", "className":"text-left col-xs-7" },
+        ]
+      });
+  });
+})
+
+</script>
+{% endblock %}
+
+{% block body %}
+<div class="row">
+  <div class="col-xs-10 col-xs-offset-1">
+        <div>
+            <div class="panel panel-default">
+                <div class="panel-heading"><strong>Reports</strong></div>
+                <div class="panel-body">
+                  <table class="table" id="tablesummary">
+                      <thead>
+                          <tr>
+                              <th class="col-xs-3 text-center">Image Name</th>
+                              <th class="col-xs-1 text-center">Status</th>
+                              <th class="col-xs-2 text-center">Start Date</th>
+                              <th class="col-xs-1 text-center">OS Vulns</th>
+                              <th class="col-xs-1 text-center">Libs Vulns</th>
+                              <th class="col-xs-1 text-center">Anomalies</th>
+                              <th class="col-xs-1"></th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          <tr>
+                              <td></td>
+                              <td></td>
+                              <td></td>
+                              <td></td>
+                              <td></td>
+                              <td></td>
+                              <td></td>
+                          </tr>
+
+                      </tbody>
+                  </table>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="modal fade" id="fullreport" tabindex="-1" role="dialog" aria-labelledby="modaltitle" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title pull-left" id="modaltitle"></h4>
+              </div>
+              <div class="modal-body">
+                <table class="table table-striped" id="tablereport">
+                  <thead>
+                    <tr>
+                      <th>component</th>
+                      <th>version</th>
+                      <th>type</th>
+                      <th>vulnerabilities</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+</div>
+{% endblock %}
