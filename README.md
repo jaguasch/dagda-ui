@@ -1,4 +1,4 @@
-DAGDA-UI
+# DAGDA-UI
 
 Simple web interface for [Dagda](https://github.com/eliasgranderubio/dagda) tool.
 
