@@ -2,6 +2,8 @@
 
 Simple web interface for [Dagda](https://github.com/eliasgranderubio/dagda) tool.
 
+**Alpha** version! Still WIP
+
 Execute the following commands in the root folder of **Dagda UI** and then, the **Dagda UI** webapp will start at port 5001:
 
 ```
