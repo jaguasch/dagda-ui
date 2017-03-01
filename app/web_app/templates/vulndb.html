@@ -51,7 +51,7 @@
                                 results.push(result);
                             }
                             break;
-                        case 'exploitdb':
+                        case 'exploit':
                             for (code of json) {
                                 result = {};
                                 result['product'] = code['product'];
@@ -96,7 +96,7 @@
               case 'bid':
                   $("input.search-term").attr('placeholder', 'Format: BID-XXXXX');
                   break;
-              case 'exploitdb':
+              case 'exploit':
                   $("input.search-term").attr('placeholder', 'Format: XXXXXX');
                   break;
               case 'product':
@@ -123,7 +123,7 @@
                                    <option value="products" selected>Product</option>
                                    <option value="cve">CVE</option>
                                    <option value="bid">BID</option>
-                                   <option value="exploitdb">Exploit-DB</option>
+                                   <option value="exploit">Exploit-DB</option>
                                  </select>
                                     </div>
                                     <div class="col-md-4">
