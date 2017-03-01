@@ -3,7 +3,7 @@
     function searchVulnDB() {
         var type = $('select[name=search-type]').val();
         var query = $('input[name=search-term]').val();
-        query = query.replace('EXPLOIT_DB_ID-', '');
+        query = query.replace('BID-', '');
         $('#searchresults').DataTable({
             destroy: true,
             sorting: true,
@@ -47,7 +47,7 @@
                                 result = {};
                                 result['product'] = code['product'];
                                 result['version'] = code['version'];
-                                result['vulnerabilities'] = query;
+                                result['vulnerabilities'] = "BID-" + query;
                                 results.push(result);
                             }
                             break;
@@ -56,7 +56,7 @@
                                 result = {};
                                 result['product'] = code['product'];
                                 result['version'] = code['version'];
-                                result['vulnerabilities'] = "EXPLOIT_DB_ID-" + query;
+                                result['vulnerabilities'] = query;
                                 results.push(result);
                             }
                             break;
