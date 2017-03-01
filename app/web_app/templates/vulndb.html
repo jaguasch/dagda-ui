@@ -47,7 +47,7 @@
                                 result = {};
                                 result['product'] = code['product'];
                                 result['version'] = code['version'];
-                                result['vulnerabilities'] = "EXPLOIT_DB_ID-" + query;
+                                result['vulnerabilities'] = query;
                                 results.push(result);
                             }
                             break;
@@ -56,7 +56,7 @@
                                 result = {};
                                 result['product'] = code['product'];
                                 result['version'] = code['version'];
-                                result['vulnerabilities'] = query;
+                                result['vulnerabilities'] = "EXPLOIT_DB_ID-" + query;
                                 results.push(result);
                             }
                             break;
