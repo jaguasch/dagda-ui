@@ -25,7 +25,7 @@ $(document).ready(function() {
               return images;
             },
             error: function (xhr, error, thrown) {
-              alert('error getting information from DAGDA!\nCheck host information on Settings');
+              alert('Error getting information from DAGDA!\nCheck host information on Settings');
               window.location.replace("/settings");
             }
       },
@@ -56,10 +56,7 @@ $(document).ready(function() {
             "dataSrc": function ( json ) {
               return json;
             },
-            error: function (xhr, error, thrown) {
-              alert('error getting information from DAGDA!\nCheck host information on Settings');
-              window.location.replace("/settings");
-            }
+            error: function (xhr, error, thrown) { }
       },
       "columns": [
         { "data": "id", "className":"text-left" },

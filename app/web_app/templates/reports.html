@@ -27,8 +27,14 @@ $(document).ready(function() {
             return json
           },
           error: function (xhr, error, thrown) {
-            alert('error getting information from DAGDA!\nCheck host information on Settings');
-            window.location.replace("/settings");
+            if (APIHOST !== "" && APIHOST != null) {
+                alert('No reports getting information from DAGDA history!\nRun your first analysis on Docker');
+                window.location.replace("/docker");
+            }
+            else {
+                alert('Error getting information from DAGDA!\nCheck host information on Settings');
+                window.location.replace("/settings");
+            }
           }
     },
     "columns": [

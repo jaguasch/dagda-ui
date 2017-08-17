@@ -20,7 +20,7 @@ $(document).ready(function() {
       url: APIHOST + "/monitor/containers/ping/start",
       success: function(msg){ },
       error: function(xhr, textStatus, errorThrown) {
-         if (xhr.status == 404 && APIHOST !== "") {
+         if (xhr.status == 404 && APIHOST !== "" && APIHOST != null) {
             $('#monitor_status_id').html('<span class="label label-info"><i class="fa fa-eye"></i>&nbsp;&nbsp;Service Up & Running</span>')
          }
          else {
