@@ -65,6 +65,10 @@
 
         "rowCallback": function( row, data, index ) {
           switch(data.status) {
+              case "Monitoring":
+                  $('td:eq(1)', row).html( '<span class="label label-warning"><i class="fa fa-cog fa-spin"></i>&nbsp;Monitoring</span>' );
+                  $('td:lt(6):gt(2)', row).html( '-' );
+                  break;
               case "Analyzing":
                   $('td:eq(1)', row).html( '<span class="label label-warning"><i class="fa fa-cog fa-spin"></i>&nbsp;Analyzing</span>' );
                   $('td:lt(6):gt(2)', row).html( '-' );
@@ -106,29 +110,42 @@
                   "url": APIHOST + "/history/" + image_name + '?id=' + reportid,
                   "dataSrc": function ( json ) {
                     pkgvulns = [];
-                    os_details = json[0]['static_analysis']['os_packages']['os_packages_details'];
-                    for (let pkg of os_details) {
-                      if (pkg['is_vulnerable'] == true && pkg['is_false_positive'] == false) {
-                        pkg['type'] = "os";
-                        pkg['vulnerabilities'] = get_keys(pkg['vulnerabilities']);
-                        pkgvulns.push(pkg);
-                      }
-                    }
-                    var vuln_dependencies = json[0]['static_analysis']['prog_lang_dependencies']['vuln_dependencies'];
-                    if ( vuln_dependencies > 0) {
-                      var dep_details = json[0]['static_analysis']['prog_lang_dependencies']['dependencies_details']
-                      for (var type in dep_details) {
-                          var type_vulns = dep_details[type];
-                          if (type_vulns.length != 0) {
-                            for (let depvuln of type_vulns) {
-                              if (depvuln['is_vulnerable'] == true && depvuln['is_false_positive'] == false) {
-                                depvuln['type'] = type;
-                                depvuln['vulnerabilities'] = get_keys(depvuln['vulnerabilities']);
-                                pkgvulns.push(depvuln)
-                              }
-                            }
+                    if(json[0]['static_analysis'] != null) {
+                        os_details = json[0]['static_analysis']['os_packages']['os_packages_details'];
+                        for (let pkg of os_details) {
+                          if (pkg['is_vulnerable'] == true && pkg['is_false_positive'] == false) {
+                            pkg['type'] = "os";
+                            pkg['vulnerabilities'] = get_keys(pkg['vulnerabilities']);
+                            pkgvulns.push(pkg);
                           }
-                      }
+                        }
+                        var vuln_dependencies = json[0]['static_analysis']['prog_lang_dependencies']['vuln_dependencies'];
+                        if ( vuln_dependencies > 0) {
+                          var dep_details = json[0]['static_analysis']['prog_lang_dependencies']['dependencies_details']
+                          for (var type in dep_details) {
+                              var type_vulns = dep_details[type];
+                              if (type_vulns.length != 0) {
+                                for (let depvuln of type_vulns) {
+                                  if (depvuln['is_vulnerable'] == true && depvuln['is_false_positive'] == false) {
+                                    depvuln['type'] = type;
+                                    depvuln['vulnerabilities'] = get_keys(depvuln['vulnerabilities']);
+                                    pkgvulns.push(depvuln);
+                                  }
+                                }
+                              }
+                          }
+                        }
+                    }
+                    else {
+                        activities = json[0]['runtime_analysis']['anomalous_activities_detected']['anomalous_activities_details'];
+                        for(activity of activities){
+                            a = {};
+                            a['type'] = activity['priority'];
+                            a['version'] = activity['time'];
+                            a['product'] = activity['rule'];
+                            a['vulnerabilities'] = activity['output'];
+                            pkgvulns.push(a);
+                        }
                     }
                     return pkgvulns;
                   },
