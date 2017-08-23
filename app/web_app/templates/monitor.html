@@ -4,19 +4,192 @@
 <script>
 
 $(document).ready(function() {
-})
+
+    function getRuntimeAnalysisStatus(image_name, report_id) {
+        var response = {};
+        var r = $.ajax({
+             "url": APIHOST + "/history/" + image_name + '?id=' + report_id ,
+             "async": false,
+             "dataSrc": function ( json ) {
+                return json[0];
+             },
+             "error": function (xhr, error, thrown) {}
+        });
+        r = JSON.parse(r.responseText)[0];
+        response['id'] = r['runtime_analysis']['container_id'];
+        response['image'] = r['image_name'];
+        response['started'] = r['timestamp'];
+        response['status'] = r['status'];
+        response['anomalies'] = getAnomalies(r['runtime_analysis']['anomalous_activities_detected']);
+        if(response['anomalies'] > 0) {
+            response['details'] = generateDetails(response['id'], response['image'], r['runtime_analysis']['anomalous_activities_detected']['anomalous_activities_details']);
+        }
+        return response;
+    }
+
+    function getAnomalies(anomalous_activities_detected) {
+        if(anomalous_activities_detected == null) {
+            return 0;
+        }
+        else {
+            return anomalous_activities_detected['anomalous_activities_details'].length;
+        }
+    }
+
+    function generateDetails(id, image, anomalous_activities_details) {
+        var body = '';
+        for(activity of anomalous_activities_details){
+           body += '                         <tr>' +
+                   '                             <td>' + activity['priority'] + '</td>' +
+                   '                             <td>' + activity['time'] + '</td>' +
+                   '                             <td>' + activity['rule'] +'</td>' +
+                   '                             <td>' + activity['output'] +'</td>' +
+                   '                         </tr>';
+        }
+        return '  <button class="btn btn-info btn-xs" data-toggle="modal" data-target="#' + id + '"><i class="fa fa-eye"></i>&nbsp;Details</button>' +
+           '   <!-- Modal -->' +
+           '   <div class="modal fade" id="' + id + '" role="dialog">' +
+           '     <div class="modal-dialog">' +
+           '       <!-- Modal content-->' +
+           '       <div class="modal-content">' +
+           '         <div class="modal-header">' +
+           '           <button type="button" class="close" data-dismiss="modal">&times;</button>' +
+           '           <h4 class="modal-title">Anomalous activities found within container: ' + id + ' [' + image + ']</h4>' +
+           '         </div>' +
+           '         <div class="modal-body">' +
+           '           <p><table id="' + id + 'table" class="table">' +
+           '                     <thead>' +
+           '                         <tr>' +
+           '                             <th>Priority</th>' +
+           '                             <th>Time</th>' +
+           '                             <th>Rule</th>' +
+           '                             <th>Output</th>' +
+           '                         </tr>' +
+           '                     </thead>' +
+           '                     <tbody>' + body + '</tbody>' +
+           '                 </table></p>' +
+           '         </div>' +
+           '         <div class="modal-footer">' +
+           '           <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>' +
+           '         </div>' +
+           '       </div>' +
+           '     </div>' +
+           '   </div>';
+    }
+
+    var tablecontainers = $('#tablecontainers').DataTable({
+      destroy:true,
+      sorting:true,
+      paging:false,
+      info:false,
+      searching:true,
+      "order": [[ 0, "asc" ]],
+      "ajax": {
+            "url": APIHOST + "/history",
+            "dataSrc": function ( json ) {
+                output = [];
+                for (analysis of json) {
+                    if(analysis['status'] === 'Monitoring') {
+                        output.push(getRuntimeAnalysisStatus(analysis['image_name'], analysis['reportid']));
+                    }
+                }
+                if(output.length === 0) {
+                    alert('No container is being monitoring now!\nMonitor your first container on Docker');
+                    window.location.replace("/docker");
+                }
+                return output;
+            },
+            error: function (xhr, error, thrown) {}
+      },
+      "columns": [
+        { "data": "id", "className":"text-left" },
+        { "data": "image", "className":"text-left" },
+        { "data": "started", "type":"date", "className":"text-left" },
+        { "data": "status", "className":"text-left" },
+        { "data": "anomalies", "className":"text-center" },
+        {
+            "className":      'text-center',
+            "orderable":      false,
+            "data":           null,
+            "defaultContent": '<button data-action="monitor" class="btn btn-danger btn-xs" data-toggle="tooltip"><i class="fa fa-stop-circle-o"></i>&nbsp;Stop</button></i></button>',
+        },
+        {
+            "className":      'text-center',
+            "orderable":      false,
+            "data":           'details',
+            "defaultContent": '<button data-action="details" class="btn btn-info btn-xs"><i class="fa fa-eye"></i>&nbsp;Details</button></i></button>',
+        }]
+    });
+
+    $('#tablecontainers tbody').on( 'click', 'button', function (elem) {
+        var data = tablecontainers.row( $(this).parents('tr') ).data();
+        var containerid = data['id'];
+        var action = $(this).data('action');
+        var url = APIHOST;
+        if(action === 'monitor') {
+            url += '/monitor/containers/' + containerid + '/stop';
+            $.post(url, function(info){
+                 var msg = 'Monitoring of docker container with id ' + containerid + ' stopped';
+                 $("#result").html('<div class="alert alert-success"><button type="button" class="close">×</button>'+msg+'</div>');
+                 window.setTimeout(function () {
+                     $(".alert").fadeTo(500, 0).slideUp(500, function () {
+                         $(this).remove();
+                     });
+                 }, 5000);
+
+                 $('.alert .close').on("click", function (e) {
+                     $(this).parent().fadeTo(500, 0).slideUp(500);
+                 });
+            });
+        }
+        else {
+            // Nothing to do
+        }
+
+    } );
+
+
+});
 
 </script>
 {% endblock %}
 
 {% block body %}
+
+        <div class="row" >
+          <div class="col-xs-10 col-xs-offset-1">
+            <center><div id="result"></div></center>
+          </div>
+        </div>
+
 <div class="row">
   <div class="col-xs-10 col-xs-offset-1">
       <div class="panel panel-default">
-          <div class="panel-heading"><strong>Monitor</strong></div>
-          <div class="panel-body">
-            <div class="text-center">Monitor mode viewer not supported yet!</div>
-          </div>
+          <div class="panel-heading"><strong>Monitor</strong> <button type="button" class="btn btn-default btn-xs pull-right" disabled><i class="fa fa-refresh"></i>&nbsp;Check all</button></div>
+            <table class="table" id="tablecontainers">
+                <thead>
+                    <tr>
+                        <th class="text-center">Container Id</th>
+                        <th class="text-center">Image</th>
+                        <th class="text-center">Started</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Anomalies</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
       </div>
   </div>
 </div>

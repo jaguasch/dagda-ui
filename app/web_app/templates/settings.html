@@ -15,6 +15,20 @@ $(document).ready(function() {
     }
   });
 
+  $.ajax({
+      type: "POST",
+      url: APIHOST + "/monitor/containers/ping/start",
+      success: function(msg){ },
+      error: function(xhr, textStatus, errorThrown) {
+         if (xhr.status == 404 && APIHOST !== "" && APIHOST != null) {
+            $('#monitor_status_id').html('<span class="label label-info"><i class="fa fa-eye"></i>&nbsp;&nbsp;Service Up & Running</span>')
+         }
+         else {
+            $('#monitor_status_id').html('<span class="label label-danger"><i class="fa fa-times"></i>&nbsp;&nbsp;Service Unavailable</span>')
+         }
+      }
+    });
+
   $('#txtapihost').val(APIHOST);
 
   $('#btnedithost').on( 'click',function () {
@@ -88,8 +102,7 @@ $(document).ready(function() {
                     <div class="col-xs-3">
                       <label for="monitor_status" class="control-label pull-right">Monitoring</label>
                     </div>
-                    <div class="col-xs-6">
-                      <span class="label label-danger"><i class="fa fa-times"></i>&nbsp;not supported</span>
+                    <div class="col-xs-6" id="monitor_status_id">
                     </div>
                 </div>
                 </form>

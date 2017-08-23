@@ -3,7 +3,11 @@
     function searchVulnDB() {
         var type = $('select[name=search-type]').val();
         var query = $('input[name=search-term]').val();
+        var query_prod = query
         query = query.replace('BID-', '');
+        if (query.includes(":")) {
+            query = query.split(":")[0] + '/' + query.split(":")[1];
+        }
         $('#searchresults').DataTable({
             destroy: true,
             sorting: true,
@@ -18,18 +22,20 @@
                     results = [];
                     switch (type) {
                         case 'products':
-                            if (query.includes(":")) {
-                                var product = query.split(":")[0];
-                                var version = query.split(":")[1];
+                            if (query_prod.includes(":")) {
+                                var product = query_prod.split(":")[0];
+                                var version = query_prod.split(":")[1];
                             } else {
-                                var product = query;
+                                var product = query_prod;
                                 var version = "";
                             }
-                            for (code of json) {
+                            for (object of json) {
                                 result = {};
                                 result['product'] = product;
                                 result['version'] = version;
-                                result['vulnerabilities'] = code;
+                                result['vulnerabilities'] = get_key(object);
+                                result['details'] = generate_details(extract_type(result['vulnerabilities'].toString()),
+                                                                     extract_query(result['vulnerabilities'].toString()));
                                 results.push(result);
                             }
                             break;
@@ -39,6 +45,7 @@
                                 result['product'] = code['product'];
                                 result['version'] = code['version'];
                                 result['vulnerabilities'] = query;
+                                result['details'] = generate_details(type, query);
                                 results.push(result);
                             }
                             break;
@@ -48,6 +55,7 @@
                                 result['product'] = code['product'];
                                 result['version'] = code['version'];
                                 result['vulnerabilities'] = "BID-" + query;
+                                result['details'] = generate_details(type, query);
                                 results.push(result);
                             }
                             break;
@@ -57,6 +65,7 @@
                                 result['product'] = code['product'];
                                 result['version'] = code['version'];
                                 result['vulnerabilities'] = query;
+                                result['details'] = generate_details(type, query);
                                 results.push(result);
                             }
                             break;
@@ -76,9 +85,99 @@
             }, {
                 "data": "vulnerabilities",
                 "className": "text-left col-xs-7"
-            }, ]
+            }, {
+                "data": "details",
+                "orderable": false,
+                "className": "text-center"
+            }]
 
         });
+    }
+
+    function get_key(object) {
+        return Object.keys(object);
+    }
+
+    function extract_type(key) {
+        if (key.startsWith("BID-")) {
+            return 'bid';
+        }
+        else if (key.startsWith("CVE-")) {
+            return 'cve';
+        }
+        else {
+            return 'exploit';
+        }
+    }
+
+    function extract_query(key) {
+        if (key.startsWith("BID-")) {
+            return key.replace('BID-', '');
+        }
+        else if (key.startsWith("CVE-")) {
+            return key;
+        }
+        else {
+            return key.replace('EXPLOIT_DB_ID-', '');
+        }
+    }
+
+    function get_vulnerability_details(type, query, id) {
+        $.ajax({
+          type: 'GET',
+          dataType: "json",
+          url: APIHOST + "/vuln/" + type + '/' + query + '/details',
+          success: function(response) {
+              response = response[0];
+              var rows = '';
+              var keys = get_key(response);
+              for (var i = 0; i < keys.length; i++) {
+                    rows = rows + '<tr>' +
+                       '             <th>' + keys[i] + '</th>' +
+                       '             <td>' + response[keys[i]] + '</td>' +
+                       '         </tr>';
+              }
+              $('#' + id + '-table').html(' <tbody>' + rows + ' </tbody>');
+          }
+        });
+        return '<table id="' + id + '-table" class="table"></table>';
+    }
+
+    function generate_details(type, query){
+        var header = ' vulnerability details';
+        var id = 'myModal'
+        if(type === 'bid') {
+            header = 'BID-' + query + header;
+            id = id + 'BID-' + query;
+        }
+        else if (type === 'cve') {
+            header = query + header;
+            id = id + query;
+        }
+        else {
+            header = 'EXPLOIT_DB_ID-' + query + header;
+            id = id + 'EXPLOIT_DB_ID-' + query;
+        }
+        var body = get_vulnerability_details(type, query, id)
+        return '  <button class="btn btn-info btn-xs" data-toggle="modal" data-target="#' + id + '"><i class="fa fa-eye"></i>&nbsp;Details</button>' +
+               '   <!-- Modal -->' +
+               '   <div class="modal fade" id="' + id + '" role="dialog">' +
+               '     <div class="modal-dialog">' +
+               '       <!-- Modal content-->' +
+               '       <div class="modal-content">' +
+               '         <div class="modal-header">' +
+               '           <button type="button" class="close" data-dismiss="modal">&times;</button>' +
+               '           <h4 class="modal-title">' + header + '</h4>' +
+               '         </div>' +
+               '         <div class="modal-body">' +
+               '           <p>' + body + '</p>' +
+               '         </div>' +
+               '         <div class="modal-footer">' +
+               '           <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>' +
+               '         </div>' +
+               '       </div>' +
+               '     </div>' +
+               '   </div>';
     }
 
     $(document).ready(function() {
@@ -133,8 +232,8 @@
                                         <button type="button" class="btn btn-search btn-default" onclick="searchVulnDB()">Search</button>
                                     </div>
                                 </div>
+                            </form>
                         </div>
-                        </form>
                     </div>
                     <div class="row">
                         <div class="col-xs-10 col-xs-offset-1">
@@ -143,11 +242,13 @@
                                     <tr>
                                         <th>Product</th>
                                         <th>Version</th>
-                                        <th>Vuln IDs</th>
+                                        <th>Vuln ID</th>
+                                        <th></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
+                                        <td></td>
                                         <td></td>
                                         <td></td>
                                         <td></td>
