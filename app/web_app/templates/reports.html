@@ -54,6 +54,7 @@
                    },
           { "data": "os_vulns", "className":"text-center" },
           { "data": "libs_vulns", "className":"text-center" },
+          { "data": "malware_bins", "className":"text-center" },
           { "data": "anomalies", "className":"text-center" },
           {
               "className":      'text-center',
@@ -83,8 +84,11 @@
           if(data.libs_vulns > 0) {
             $('td:eq(4)', row).addClass("alert-danger");
           }
-          if(data.anomalies > 0) {
+          if(data.malware_bins > 0) {
             $('td:eq(5)', row).addClass("alert-danger");
+          }
+          if(data.anomalies > 0) {
+            $('td:eq(6)', row).addClass("alert-danger");
           }
         }
         });
@@ -135,6 +139,19 @@
                               }
                           }
                         }
+                        if(json[0]['static_analysis']['malware_binaries'] != null) {
+                            var malw_bins = json[0]['static_analysis']['malware_binaries'];
+                            if(malw_bins.length > 0){
+                                for(let malw_bin of malw_bins){
+                                    p = {};
+                                    p['version'] = '-';
+                                    p['product'] = malw_bin['file'];
+                                    p['type'] = 'malware';
+                                    p['vulnerabilities'] = malw_bin['malware'];
+                                    pkgvulns.push(p);
+                                }
+                            }
+                        }
                     }
                     else {
                         activities = json[0]['runtime_analysis']['anomalous_activities_detected']['anomalous_activities_details'];
@@ -182,12 +199,14 @@
                               <th class="col-xs-2 text-center">Start Date</th>
                               <th class="col-xs-1 text-center">OS Vulns</th>
                               <th class="col-xs-1 text-center">Libs Vulns</th>
+                              <th class="col-xs-1 text-center">Malware Bins</th>
                               <th class="col-xs-1 text-center">Anomalies</th>
                               <th class="col-xs-1"></th>
                           </tr>
                       </thead>
                       <tbody>
                           <tr>
+                              <td></td>
                               <td></td>
                               <td></td>
                               <td></td>
