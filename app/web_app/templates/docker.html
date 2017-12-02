@@ -1,209 +1,225 @@
-{% extends "base.html" %}
-{% block nav_docker %}active{% endblock %}
-{% block script %}
+{% extends "base.html" %} {% block nav_docker %}active{% endblock %} {% block script %}
 <script>
+    $(document).ready(function() {
 
-$(document).ready(function() {
-
-    var tableimages = $('#tableimages').DataTable({
-      destroy:true,
-      sorting:true,
-      paging:false,
-      info:false,
-      searching:true,
-      "order": [[ 0, "asc" ]],
-      "ajax": {
-            "url": APIHOST + "/docker/images",
-            "dataSrc": function ( json ) {
-              images = [];
-              for (let image of json) {
-                  var tags = image['tags'][0].split(':');
-                  image['repo'] = tags[0];
-                  image['tag'] = tags[1];
-                  if (image['repo'] !== "<none>") images.push(image);
-              }
-              return images;
+        var tableimages = $('#tableimages').DataTable({
+            destroy: true,
+            sorting: true,
+            paging: false,
+            info: false,
+            searching: true,
+            "order": [
+                [0, "asc"]
+            ],
+            "ajax": {
+                "url": APIHOST + "/docker/images",
+                "dataSrc": function(json) {
+                    images = [];
+                    for (let image of json) {
+                        var tags = image['tags'][0].split(':');
+                        image['repo'] = tags[0];
+                        image['tag'] = tags[1];
+                        if (image['repo'] !== "<none>") images.push(image);
+                    }
+                    return images;
+                },
+                error: function(xhr, error, thrown) {
+                    alert('Error getting information from DAGDA!\nCheck host information on Settings');
+                    window.location.replace("/settings");
+                }
             },
-            error: function (xhr, error, thrown) {
-              alert('Error getting information from DAGDA!\nCheck host information on Settings');
-              window.location.replace("/settings");
-            }
-      },
-      "columns": [
-        { "data": "repo", "className":"text-left" },
-        { "data": "tag", "className":"text-left" },
-        { "data": "id", "className":"text-left" },
-        { "data": "created", "type":"date", "className":"text-left" },
-        { "data": "size", "orderable": false, "className":"text-left" },
-        {
-            "className":      'text-center',
-            "orderable":      false,
-            "data":           null,
-            "defaultContent": '<button data-action="check" class="btn btn-default btn-xs"><i class="fa fa-bullseye" aria-hidden="true"></i></button>',
-        }
-      ]
-    });
-
-    var tablecontainers = $('#tablecontainers').DataTable({
-      destroy:true,
-      sorting:true,
-      paging:false,
-      info:false,
-      searching:true,
-      "order": [[ 0, "asc" ]],
-      "ajax": {
-            "url": APIHOST + "/docker/containers",
-            "dataSrc": function ( json ) {
-              return json;
-            },
-            error: function (xhr, error, thrown) { }
-      },
-      "columns": [
-        { "data": "id", "className":"text-left" },
-        { "data": "image", "className":"text-left" },
-        { "data": "created", "type":"date", "className":"text-left" },
-        { "data": "status", "className":"text-left" },
-        { "data": "name", "className":"text-left" },
-        {
-            "className":      'text-center',
-            "orderable":      false,
-            "data":           null,
-            "defaultContent": '<button data-action="monitor" class="btn btn-default btn-xs" data-toggle="tooltip"><i class="fa fa-eye" aria-hidden="true"></i></button>',
-        },
-        {
-            "className":      'text-center',
-            "orderable":      false,
-            "data":           null,
-            "defaultContent": '<button data-action="check" class="btn btn-default btn-xs"><i class="fa fa-bullseye" aria-hidden="true"></i></button>',
-        }      ]
-    });
-
-    $('#tableimages tbody').on( 'click', 'button', function (elem) {
-        var data = tableimages.row( $(this).parents('tr') ).data();
-        var repotag = data['tags'][0];
-        var action = $(this).data('action');
-        $.post(APIHOST + "/check/images/" + repotag, function(info){
-             response = JSON.parse(info);
-             var status = response['msg'].replace('<','');
-             status = status.replace('>','');
-             var msg = status;
-             $("#result").html('<div class="alert alert-success"><button type="button" class="close">×</button>'+msg+'</div>');
-             window.setTimeout(function () {
-                 $(".alert").fadeTo(500, 0).slideUp(500, function () {
-                     $(this).remove();
-                 });
-             }, 5000);
-
-             $('.alert .close').on("click", function (e) {
-                 $(this).parent().fadeTo(500, 0).slideUp(500);
-             });
-         });
-    } );
-
-    $('#tablecontainers tbody').on( 'click', 'button', function (elem) {
-        var data = tablecontainers.row( $(this).parents('tr') ).data();
-        var containerid = data['id'];
-        var action = $(this).data('action');
-        var url = APIHOST;
-        if(action === 'check') {
-            url += '/check/containers/' + containerid;
-        }
-        else {
-            url += '/monitor/containers/' + containerid + '/start';
-        }
-        $.post(url, function(info){
-             response = JSON.parse(info);
-             var status = response['msg'].replace('<','');
-             status = status.replace('>','');
-             var msg = status;
-             $("#result").html('<div class="alert alert-success"><button type="button" class="close">×</button>'+msg+'</div>');
-             window.setTimeout(function () {
-                 $(".alert").fadeTo(500, 0).slideUp(500, function () {
-                     $(this).remove();
-                 });
-             }, 5000);
-
-             $('.alert .close').on("click", function (e) {
-                 $(this).parent().fadeTo(500, 0).slideUp(500);
-             });
+            "columns": [{
+                "data": "repo",
+                "className": "text-left"
+            }, {
+                "data": "tag",
+                "className": "text-left"
+            }, {
+                "data": "id",
+                "className": "text-left"
+            }, {
+                "data": "created",
+                "type": "date",
+                "className": "text-left"
+            }, {
+                "data": "size",
+                "orderable": false,
+                "className": "text-left"
+            }, {
+                "className": 'text-center',
+                "orderable": false,
+                "data": null,
+                "defaultContent": '<button data-action="check" class="btn btn-default btn-xs"><i class="fa fa-bullseye" aria-hidden="true"></i></button>',
+            }]
         });
-    } );
 
-});
+        var tablecontainers = $('#tablecontainers').DataTable({
+            destroy: true,
+            sorting: true,
+            paging: false,
+            info: false,
+            searching: true,
+            "order": [
+                [0, "asc"]
+            ],
+            "ajax": {
+                "url": APIHOST + "/docker/containers",
+                "dataSrc": function(json) {
+                    return json;
+                },
+                error: function(xhr, error, thrown) {}
+            },
+            "columns": [{
+                "data": "id",
+                "className": "text-left"
+            }, {
+                "data": "image",
+                "className": "text-left"
+            }, {
+                "data": "created",
+                "type": "date",
+                "className": "text-left"
+            }, {
+                "data": "status",
+                "className": "text-left"
+            }, {
+                "data": "name",
+                "className": "text-left"
+            }, {
+                "className": 'text-center',
+                "orderable": false,
+                "data": null,
+                "defaultContent": '<button data-action="monitor" class="btn btn-default btn-xs" data-toggle="tooltip"><i class="fa fa-eye" aria-hidden="true"></i></button>',
+            }, {
+                "className": 'text-center',
+                "orderable": false,
+                "data": null,
+                "defaultContent": '<button data-action="check" class="btn btn-default btn-xs"><i class="fa fa-bullseye" aria-hidden="true"></i></button>',
+            }]
+        });
 
+        $('#tableimages tbody').on('click', 'button', function(elem) {
+            var data = tableimages.row($(this).parents('tr')).data();
+            var repotag = data['tags'][0];
+            var action = $(this).data('action');
+            $.post(APIHOST + "/check/images/" + repotag, function(info) {
+                var status = info['msg'].replace('<', '');
+                status = status.replace('>', '');
+                var msg = status;
+                $("#result").html('<div class="alert alert-success"><button type="button" class="close">×</button>' + msg + '</div>');
+                window.setTimeout(function() {
+                    $(".alert").fadeTo(500, 0).slideUp(500, function() {
+                        $(this).remove();
+                    });
+                }, 5000);
+
+                $('.alert .close').on("click", function(e) {
+                    $(this).parent().fadeTo(500, 0).slideUp(500);
+                });
+            });
+        });
+
+        $('#tablecontainers tbody').on('click', 'button', function(elem) {
+            var data = tablecontainers.row($(this).parents('tr')).data();
+            var containerid = data['id'];
+            var action = $(this).data('action');
+            var url = APIHOST;
+            if (action === 'check') {
+                url += '/check/containers/' + containerid;
+            } else {
+                url += '/monitor/containers/' + containerid + '/start';
+            }
+            $.post(url, function(info) {
+                var status = info['msg'].replace('<', '');
+                status = status.replace('>', '');
+                var msg = status;
+                $("#result").html('<div class="alert alert-success"><button type="button" class="close">×</button>' + msg + '</div>');
+                window.setTimeout(function() {
+                    $(".alert").fadeTo(500, 0).slideUp(500, function() {
+                        $(this).remove();
+                    });
+                }, 5000);
+
+                $('.alert .close').on("click", function(e) {
+                    $(this).parent().fadeTo(500, 0).slideUp(500);
+                });
+            });
+        });
+
+    });
 </script>
-{% endblock %}
-
-{% block body %}
-        <div class="row" >
-          <div class="col-xs-10 col-xs-offset-1">
-            <center><div id="result"></div></center>
-          </div>
-        </div>
-
-        <div class="row" >
-          <div class="col-xs-10 col-xs-offset-1">
-            <div class="panel panel-default">
-                <div class="panel-heading"><strong>Container list from Host</strong> <button type="button" class="btn btn-default btn-xs pull-right" disabled><i class="fa fa-refresh"></i>&nbsp;Check all</button></div>
-                <table class="table" id="tablecontainers">
-                    <thead>
-                        <tr>
-                            <th class="text-center">Container Id</th>
-                            <th class="text-center">Image</th>
-                            <th class="text-center">Created</th>
-                            <th class="text-center">Status</th>
-                            <th class="text-center">Name</th>
-              				<th></th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-              				<td></td>
-                            <td></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-          </div>
-        </div>
-
-        <div class="row" >
-          <div class="col-xs-10 col-xs-offset-1">
-            <div class="panel panel-default">
-                <div class="panel-heading"><strong>Image list from Host</strong> <button type="button" class="btn btn-default btn-xs pull-right" disabled><i class="fa fa-refresh"></i>&nbsp;Check all</button></div>
-                <table class="table" id="tableimages">
-                    <thead>
-                        <tr>
-                            <th class="text-center">Repository</th>
-                            <th class="text-center">Tag</th>
-                            <th class="text-center">Image ID</th>
-                            <th class="text-center">Created</th>
-                            <th class="text-center">Size</th>
-							<th></th>
-                        </tr>
-
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                  			<td></td>
-                          </tr>
-                      </tbody>
-                  </table>
-              </div>
-            </div>
-          </div>
-
+{% endblock %} {% block body %}
+<div class="row">
+    <div class="col-xs-10 col-xs-offset-1">
+        <center>
+            <div id="result"></div>
+        </center>
     </div>
+</div>
+
+<div class="row">
+    <div class="col-xs-10 col-xs-offset-1">
+        <div class="panel panel-default">
+            <div class="panel-heading"><strong>Container list from Host</strong> <button type="button" class="btn btn-default btn-xs pull-right" disabled><i class="fa fa-refresh"></i>&nbsp;Check all</button></div>
+            <table class="table" id="tablecontainers">
+                <thead>
+                    <tr>
+                        <th class="text-center">Container Id</th>
+                        <th class="text-center">Image</th>
+                        <th class="text-center">Created</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Name</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xs-10 col-xs-offset-1">
+        <div class="panel panel-default">
+            <div class="panel-heading"><strong>Image list from Host</strong> <button type="button" class="btn btn-default btn-xs pull-right" disabled><i class="fa fa-refresh"></i>&nbsp;Check all</button></div>
+            <table class="table" id="tableimages">
+                <thead>
+                    <tr>
+                        <th class="text-center">Repository</th>
+                        <th class="text-center">Tag</th>
+                        <th class="text-center">Image ID</th>
+                        <th class="text-center">Created</th>
+                        <th class="text-center">Size</th>
+                        <th></th>
+                    </tr>
+
+                </thead>
+                <tbody>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</div>
 
 {% endblock %}
