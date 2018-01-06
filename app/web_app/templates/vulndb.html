@@ -39,16 +39,6 @@
                                 results.push(result);
                             }
                             break;
-                        case 'cve':
-                            for (code of json) {
-                                result = {};
-                                result['product'] = code['product'];
-                                result['version'] = code['version'];
-                                result['vulnerabilities'] = query;
-                                result['details'] = generate_details(type, query);
-                                results.push(result);
-                            }
-                            break;
                         case 'bid':
                             for (code of json) {
                                 result = {};
@@ -59,26 +49,9 @@
                                 results.push(result);
                             }
                             break;
+                        case 'cve':
                         case 'exploit':
-                            for (code of json) {
-                                result = {};
-                                result['product'] = code['product'];
-                                result['version'] = code['version'];
-                                result['vulnerabilities'] = query;
-                                result['details'] = generate_details(type, query);
-                                results.push(result);
-                            }
-                            break;
                         case 'rhba':
-                            for (code of json) {
-                                result = {};
-                                result['product'] = code['product'];
-                                result['version'] = code['version'];
-                                result['vulnerabilities'] = query;
-                                result['details'] = generate_details(type, query);
-                                results.push(result);
-                            }
-                            break;
                         case 'rhsa':
                             for (code of json) {
                                 result = {};
