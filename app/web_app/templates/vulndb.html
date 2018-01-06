@@ -5,7 +5,7 @@
         var query = $('input[name=search-term]').val();
         var query_prod = query
         query = query.replace('BID-', '');
-        if (query.includes(":")) {
+        if (query.includes(":") && !query.includes("RHBA") && !query.includes("RHSA")) {
             query = query.split(":")[0] + '/' + query.split(":")[1];
         }
         $('#searchresults').DataTable({
@@ -69,6 +69,26 @@
                                 results.push(result);
                             }
                             break;
+                        case 'rhba':
+                            for (code of json) {
+                                result = {};
+                                result['product'] = code['product'];
+                                result['version'] = code['version'];
+                                result['vulnerabilities'] = query;
+                                result['details'] = generate_details(type, query);
+                                results.push(result);
+                            }
+                            break;
+                        case 'rhsa':
+                            for (code of json) {
+                                result = {};
+                                result['product'] = code['product'];
+                                result['version'] = code['version'];
+                                result['vulnerabilities'] = query;
+                                result['details'] = generate_details(type, query);
+                                results.push(result);
+                            }
+                            break;
                     }
                     return results;
                 },
@@ -105,6 +125,12 @@
         else if (key.startsWith("CVE-")) {
             return 'cve';
         }
+        else if (key.startsWith("RHBA-")) {
+            return 'rhba';
+        }
+        else if (key.startsWith("RHSA-")) {
+            return 'rhsa';
+        }
         else {
             return 'exploit';
         }
@@ -114,7 +140,7 @@
         if (key.startsWith("BID-")) {
             return key.replace('BID-', '');
         }
-        else if (key.startsWith("CVE-")) {
+        else if (key.startsWith("CVE-") || key.startsWith("RHBA-") || key.startsWith("RHSA-")) {
             return key;
         }
         else {
@@ -153,6 +179,10 @@
         else if (type === 'cve') {
             header = query + header;
             id = id + query;
+        }
+        else if (type === 'rhba' || type === 'rhsa') {
+            header = query + header;
+            id = id + query.replace(':', '-');
         }
         else {
             header = 'EXPLOIT_DB_ID-' + query + header;
@@ -198,8 +228,14 @@
               case 'exploit':
                   $("input.search-term").attr('placeholder', 'Format: XXXXXX');
                   break;
-              case 'product':
-                  $("input.search-term").attr('placeholder', 'Format: openldap, openldap:2.2.20');
+              case 'products':
+                  $("input.search-term").attr('placeholder', 'Format: <NAME>[:<VERSION>]');
+                  break;
+              case 'rhba':
+                  $("input.search-term").attr('placeholder', 'Format: RHBA-XXXX:XXXX');
+                  break;
+              case 'rhsa':
+                  $("input.search-term").attr('placeholder', 'Format: RHSA-XXXX:XXXX');
                   break;
           }
       });
@@ -223,6 +259,8 @@
                                    <option value="cve">CVE</option>
                                    <option value="bid">BID</option>
                                    <option value="exploit">Exploit-DB</option>
+                                   <option value="rhba">RHBA</option>
+                                   <option value="rhsa">RHSA</option>
                                  </select>
                                     </div>
                                     <div class="col-md-4">
